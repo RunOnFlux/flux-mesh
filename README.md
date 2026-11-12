@@ -18,8 +18,8 @@ installs the same release in its containers.
 
 ## Build
 
-`./build.sh` writes `dist/flux-mesh_<VERSION>-1_amd64.deb`, `dist/tayga-<commit>.tar.gz`
-and `dist/SHA256SUMS`. It needs curl, git, make, gcc and dpkg-deb (Linux). A `v<VERSION>`
+`./build.sh` writes `dist/flux-mesh_<VERSION>-1_<arch>.deb` for the machine's architecture
+(amd64 or arm64), `dist/tayga-<commit>.tar.gz` and `dist/SHA256SUMS`. It needs curl, git, make, gcc and dpkg-deb (Linux). A `v<VERSION>`
 tag builds and publishes all three as a release.
 
 ## Licences

@@ -9,7 +9,10 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-24.04
+    strategy:
+      matrix:
+        runner: [ubuntu-24.04, ubuntu-24.04-arm]
+    runs-on: ${{ matrix.runner }}
     permissions:
       contents: read
     steps:
@@ -27,7 +30,7 @@ jobs:
 
       - uses: actions/upload-artifact@v7
         with:
-          name: dist
+          name: dist-${{ matrix.runner }}
           path: dist/*
           if-no-files-found: error
 
@@ -39,8 +42,15 @@ jobs:
     steps:
       - uses: actions/download-artifact@v8
         with:
-          name: dist
-          path: dist
+          pattern: dist-*
+          path: built
+
+      - name: One set of files, one SHA256SUMS
+        run: |
+          mkdir dist
+          cp built/*/*.deb built/*/*.tar.gz dist/
+          cmp built/*/tayga-*.tar.gz
+          (cd dist && sha256sum *.deb *.tar.gz > SHA256SUMS && cat SHA256SUMS)
 
       - name: Publish
         env:
@@ -48,4 +58,4 @@ jobs:
         run: >
           gh release create "$GITHUB_REF_NAME" dist/*
           --repo "$GITHUB_REPOSITORY" --verify-tag --title "$GITHUB_REF_NAME"
-          --notes "Built from $GITHUB_SHA. SHA256SUMS lists the deb's and Tayga's source's sha256."
+          --notes "Built from $GITHUB_SHA. SHA256SUMS lists the debs' and Tayga's source's sha256."

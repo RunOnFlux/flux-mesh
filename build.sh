@@ -1,8 +1,8 @@
 #!/bin/bash
 # build.sh [OUT]
 #
-# Builds dist/flux-mesh_<VERSION>-1_amd64.deb: the pinned Nebula release binaries (sha256
-# checked), Tayga built from its pinned commit, the mesh units and AppArmor profiles, and
+# Builds dist/flux-mesh_<VERSION>-1_<arch>.deb for the machine's architecture (amd64 or arm64):
+# the pinned Nebula release binaries (sha256 checked), Tayga built from its pinned commit, the mesh units and AppArmor profiles, and
 # the licences. Also writes Tayga's source for that commit (its GPL obligation) and
 # SHA256SUMS. Needs curl, git, make, gcc and dpkg-deb.
 set -euo pipefail
@@ -12,15 +12,21 @@ out=${1:-$here/dist}
 version=$(cat "$here/VERSION")
 # shellcheck source=pins.env
 source "$here/pins.env"
+arch=$(dpkg --print-architecture)
+case $arch in
+  amd64) nebula_sha256=$NEBULA_SHA256_AMD64 ;;
+  arm64) nebula_sha256=$NEBULA_SHA256_ARM64 ;;
+  *) echo "no pinned Nebula for $arch" >&2; exit 1 ;;
+esac
 
 work=$(mktemp -d)
 trap 'rm -rf "$work"' EXIT
 pkg=$work/pkg
 
-tarball=nebula-linux-amd64.tar.gz
+tarball=nebula-linux-${arch}.tar.gz
 curl -fsSL -o "$work/$tarball" \
   "https://github.com/slackhq/nebula/releases/download/${NEBULA_VERSION}/${tarball}"
-echo "${NEBULA_SHA256_AMD64}  $work/$tarball" | sha256sum --check --status
+echo "${nebula_sha256}  $work/$tarball" | sha256sum --check --status
 tar -xzf "$work/$tarball" -C "$work" nebula nebula-cert
 
 git clone --quiet "$TAYGA_REPO" "$work/tayga"
@@ -38,11 +44,11 @@ sed -e "s|@NEBULA_VERSION@|$NEBULA_VERSION|g" -e "s|@TAYGA_REPO@|$TAYGA_REPO|g" 
   > "$pkg/usr/share/doc/flux-mesh/copyright"
 
 install -d "$pkg/DEBIAN"
-sed "s|@VERSION@|$version|" "$here/debian/control" > "$pkg/DEBIAN/control"
+sed -e "s|@VERSION@|$version|" -e "s|@ARCH@|$arch|" "$here/debian/control" > "$pkg/DEBIAN/control"
 install -m 0644 "$here/debian/conffiles" "$pkg/DEBIAN/conffiles"
 
 mkdir -p "$out"
-deb=flux-mesh_${version}-1_amd64.deb
+deb=flux-mesh_${version}-1_${arch}.deb
 dpkg-deb --root-owner-group --build "$pkg" "$out/$deb" >/dev/null
 git -C "$work/tayga" archive --format=tar.gz --prefix="tayga-${TAYGA_COMMIT}/" \
   -o "$out/tayga-${TAYGA_COMMIT}.tar.gz" "$TAYGA_COMMIT"

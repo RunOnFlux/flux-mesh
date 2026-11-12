@@ -1,6 +1,6 @@
 Package: flux-mesh
 Version: @VERSION@-1
-Architecture: amd64
+Architecture: @ARCH@
 Maintainer: Flux <dev@runonflux.io>
 Depends: libc6 (>= 2.34)
 Section: net
