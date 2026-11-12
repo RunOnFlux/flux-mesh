@@ -1,0 +1,24 @@
+Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
+Upstream-Name: flux-mesh
+Source: https://github.com/RunOnFlux/flux-mesh
+
+Files: *
+Copyright: Flux
+License: BlueOak-1.0.0
+ See /usr/share/doc/flux-mesh/LICENSE.
+
+Files: usr/bin/nebula usr/bin/nebula-cert
+Copyright: 2018-2019 Slack Technologies, Inc.
+License: MIT
+ Nebula @NEBULA_VERSION@, the upstream release binaries:
+ https://github.com/slackhq/nebula/releases/tag/@NEBULA_VERSION@
+ See /usr/share/doc/flux-mesh/nebula-MIT.txt.
+
+Files: usr/bin/tayga
+Copyright: 2010 Nathan Lutchansky <lutchann@litech.org>
+ 2025 Andrew Palardy <andrew@apalrd.net>
+License: GPL-2.0+
+ Built from @TAYGA_REPO@ at commit @TAYGA_COMMIT@. The complete source of
+ that commit is published beside this package in its release as
+ tayga-@TAYGA_COMMIT@.tar.gz.
+ See /usr/share/doc/flux-mesh/GPL-2.0.txt.

@@ -1,0 +1,53 @@
+# SPDX-License-Identifier: BlueOak-1.0.0
+#
+# Nebula, the mesh overlay data plane — one instance per mesh app per node,
+# run by flux-mesh@.service inside the app's network namespace. It reads the
+# per-app material FluxOS renders under /dat/var/lib/flux-mesh/<app>/ (config,
+# trust bundle, host cert, the node's CA key) and writes nothing.
+abi <abi/3.0>,
+include <tunables/global>
+
+# attach_disconnected: the unit's mount namespace (ProtectSystem et al.)
+# presents /run/systemd/notify as a disconnected path.
+/usr/bin/nebula flags=(attach_disconnected) {
+  include <abstractions/base>
+
+  /usr/bin/nebula mr,
+
+  # Go runtime probes at startup (both tolerate absence; allowing them keeps
+  # the logs free of denials)
+  /sys/kernel/mm/transparent_hugepage/hpage_pmd_size r,
+  owner @{PROC}/@{pid}/cgroup r,
+  /sys/fs/cgroup/{,**} r,
+
+  # sd_notify readiness (Type=notify, sent once the tun is up)
+  /run/systemd/notify w,
+
+  # the overlay tun, created inside the app's namespace
+  /dev/net/tun rw,
+  capability net_admin,
+  # interface address/link configuration
+  network netlink raw,
+
+  # per-app mesh material, read-only: config.yml, trust bundle, host cert,
+  # CA key, SSH-interface host key
+  /dat/var/lib/flux-mesh/{,**} r,
+
+  # UDP transport + hole punching; TCP for the embedded SSH interface the
+  # impersonation detector reads (list-hostmap / print-cert)
+  network inet dgram,
+  network inet6 dgram,
+  network inet stream,
+  network inet6 stream,
+  network unix dgram,
+
+  # tripwires -- nebula must never touch these
+  audit deny /dat/var/lib/docker/** rwlkmx,
+  audit deny @{PROC}/*/mem rwlkmx,
+  audit deny /proc/kcore rwlkmx,
+  audit deny /home/** rwlkmx,
+  audit deny /root/** rwlkmx,
+  audit deny ptrace,
+  audit deny mount,
+  audit deny capability sys_module,
+}

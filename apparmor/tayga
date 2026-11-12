@@ -1,0 +1,35 @@
+# SPDX-License-Identifier: BlueOak-1.0.0
+#
+# Tayga, the mesh IPv4 shim — a stateless userspace SIIT translator, one
+# instance per mesh app per node, run by flux-mesh-tayga@.service inside the
+# app's network namespace beside Nebula. It reads one config file and writes
+# nothing.
+abi <abi/3.0>,
+include <tunables/global>
+
+/usr/bin/tayga {
+  include <abstractions/base>
+
+  /usr/bin/tayga mr,
+
+  # its translation tun, created inside the app's namespace
+  /dev/net/tun rw,
+  capability net_admin,
+
+  # the FluxOS-rendered address map, read-only
+  /dat/var/lib/flux-mesh/*/tayga.conf r,
+
+  # tripwires -- tayga must never touch these. Everything else under
+  # /dat/var/lib/flux-mesh/ (the per-app CA private keys live there) is
+  # already denied by default: only tayga.conf is allowed above.
+  audit deny /dat/var/lib/docker/** rwlkmx,
+  audit deny @{PROC}/*/mem rwlkmx,
+  audit deny /proc/kcore rwlkmx,
+  audit deny /home/** rwlkmx,
+  audit deny /root/** rwlkmx,
+  audit deny ptrace,
+  audit deny mount,
+  audit deny capability sys_module,
+  audit deny network inet stream,
+  audit deny network inet6 stream,
+}

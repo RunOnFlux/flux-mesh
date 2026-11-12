@@ -1,0 +1,47 @@
+name: CI
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Build
+        run: ./build.sh
+
+      - name: The units parse
+        run: |
+          mkdir -p check
+          cp systemd/*.service check/
+          # The units order on the node's /dat mount; a stand-in lets them resolve here.
+          printf '[Mount]\nWhat=/dev/null\nWhere=/dat\n' > check/dat.mount
+          SYSTEMD_UNIT_PATH="$PWD/check:" systemd-analyze verify --man=no \
+            check/flux-mesh@x.service check/flux-mesh-tayga@x.service 2>&1 \
+            | tee verify.log
+          ! grep -vE "is not executable|No such file or directory" verify.log
+
+      - name: The profiles parse
+        run: |
+          sudo apt-get install -y -qq apparmor >/dev/null
+          for p in apparmor/*; do sudo apparmor_parser --skip-kernel-load --skip-cache -Q "$p"; done
+
+      - name: The deb holds the binaries, units, profiles and licences
+        run: |
+          deb=$(ls dist/*.deb)
+          dpkg-deb -c "$deb" | awk '{print $6}' | sort > contents.txt
+          for f in ./usr/bin/nebula ./usr/bin/nebula-cert ./usr/bin/tayga \
+              ./usr/lib/systemd/system/flux-mesh@.service \
+              ./usr/lib/systemd/system/flux-mesh-tayga@.service \
+              ./etc/apparmor.d/nebula ./etc/apparmor.d/tayga \
+              ./usr/share/doc/flux-mesh/copyright ./usr/share/doc/flux-mesh/LICENSE \
+              ./usr/share/doc/flux-mesh/nebula-MIT.txt ./usr/share/doc/flux-mesh/GPL-2.0.txt; do
+            grep -qxF "$f" contents.txt || { echo "missing $f" >&2; exit 1; }
+          done
+          dpkg-deb -x "$deb" root
+          root/usr/bin/nebula -version
+          root/usr/bin/tayga --help 2>&1 | head -1 || true

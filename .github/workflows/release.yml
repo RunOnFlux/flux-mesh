@@ -1,0 +1,51 @@
+name: Release
+
+# A version tag builds the deb once, here, and publishes it with Tayga's source for its
+# pinned commit and the sha256 of both. flux_iso pins the deb by version and sha256.
+
+on:
+  push:
+    tags: ['v*']
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: The tag names the version built
+        run: |
+          if [ "v$(cat VERSION)" != "$GITHUB_REF_NAME" ]; then
+            echo "VERSION is $(cat VERSION); the tag is $GITHUB_REF_NAME" >&2
+            exit 1
+          fi
+
+      - name: Build
+        run: ./build.sh
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: dist
+          path: dist/*
+          if-no-files-found: error
+
+  release:
+    needs: build
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v8
+        with:
+          name: dist
+          path: dist
+
+      - name: Publish
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: >
+          gh release create "$GITHUB_REF_NAME" dist/*
+          --repo "$GITHUB_REPOSITORY" --verify-tag --title "$GITHUB_REF_NAME"
+          --notes "Built from $GITHUB_SHA. SHA256SUMS lists the deb's and Tayga's source's sha256."

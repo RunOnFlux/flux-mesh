@@ -1,0 +1,14 @@
+Package: flux-mesh
+Version: @VERSION@-1
+Architecture: amd64
+Maintainer: Flux <dev@runonflux.io>
+Depends: libc6 (>= 2.34)
+Section: net
+Priority: optional
+Homepage: https://github.com/RunOnFlux/flux-mesh
+Description: Flux app mesh runtime
+ The data plane FluxOS's app mesh runs on an ArcaneOS node: Nebula (the
+ overlay) and Tayga (the IPv4 shim), one instance each per mesh app in the
+ app's network namespace, as the flux-mesh@ and flux-mesh-tayga@ template
+ units, confined by their AppArmor profiles. FluxOS creates each app's
+ namespace and configuration and starts the units; nothing starts at boot.
