@@ -48,8 +48,9 @@ jobs:
       - name: One set of files, one SHA256SUMS
         run: |
           mkdir dist
-          cp built/*/*.deb built/*/*.tar.gz dist/
+          cp built/*/*.deb dist/
           cmp built/*/tayga-*.tar.gz
+          cp "$(ls built/*/tayga-*.tar.gz | head -1)" dist/
           (cd dist && sha256sum *.deb *.tar.gz > SHA256SUMS && cat SHA256SUMS)
 
       - name: Publish
